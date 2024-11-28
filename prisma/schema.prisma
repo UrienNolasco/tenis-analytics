@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Jogador {
+  id                String              @id @default(cuid())
+  nome              String
+  email             String?             @unique
+  dataCriacao       DateTime            @default(now())
+  dataAtualizacao   DateTime            @updatedAt
+  estatisticas      Estatisticas?
+  ranking           Ranking?
+  partidas          PartidaJogador[]
+  vitorias          Partida[]           @relation("Vencedor")
+  historicoDePontos HistoricoDePontos[]
+}
+
+model Partida {
+  id              String              @id @default(cuid())
+  data            DateTime
+  local           String?
+  jogadores       PartidaJogador[]
+  vencedorId      String?
+  vencedor        Jogador?            @relation("Vencedor", fields: [vencedorId], references: [id])
+  sets            HistoricoDePontos[]
+  dataCriacao     DateTime            @default(now())
+  dataAtualizacao DateTime            @updatedAt
+}
+
+model PartidaJogador {
+  jogadorId String
+  partidaId String
+  jogador   Jogador @relation(fields: [jogadorId], references: [id])
+  partida   Partida @relation(fields: [partidaId], references: [id])
+
+  @@id([jogadorId, partidaId]) // Chave primária composta
+}
+
+model Estatisticas {
+  id               String   @id @default(cuid())
+  jogadorId        String   @unique
+  jogador          Jogador  @relation(fields: [jogadorId], references: [id])
+  partidasJogadas  Int      @default(0)
+  partidasVencidas Int      @default(0)
+  setsVencidos     Int      @default(0)
+  pontosGanhos     Int      @default(0)
+  pontosPerdidos   Int      @default(0)
+  dataAtualizacao  DateTime @updatedAt
+}
+
+model Ranking {
+  id              String   @id @default(cuid())
+  jogadorId       String   @unique
+  jogador         Jogador  @relation(fields: [jogadorId], references: [id])
+  posicao         Int
+  pontos          Int
+  dataAtualizacao DateTime @updatedAt
+}
+
+model HistoricoDePontos {
+  id        String  @id @default(cuid())
+  partidaId String
+  jogadorId String
+  setNumero Int
+  pontos    Int
+  partida   Partida @relation(fields: [partidaId], references: [id])
+  jogador   Jogador @relation(fields: [jogadorId], references: [id])
+
+  @@index([partidaId, jogadorId, setNumero])
+}
